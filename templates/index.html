@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiscBot</title>
+
+    <script>
+        // MathJax configuration for LaTeX rendering
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        /* --- Color Variables (Theming) --- */
+        :root {
+            /* Light Mode (Toned Down for Eye Comfort) */
+            --page-bg: #eef2f5; 
+            --chat-container-bg-start: #ffffff;
+            --chat-container-bg-end: #f5f8fa; 
+            
+            --border-color: #d8e1e8; 
+            --text-color: #1f1f1f;
+            --header-bg: #FFFFFF;
+            --accent-blue: #4285F4;
+            --header-text: var(--accent-blue);
+            --tagline-text: #5f6368;
+            --bot-message-bg: #FFFFFF;
+            --user-message-bg: #EAF2FF;
+            
+            /* Frosted Input - ADJUSTED FOR MORE SEE-THROUGH LOOK */
+            --input-bg: rgba(255, 255, 255, 0.6); /* Reduced opacity to 0.6 */
+            --frosted-blur: blur(10px); /* Increased blur slightly */
+            
+            --welcome-title-color: var(--accent-blue);
+            --welcome-text: #1f1f1f;
+            --shadow-color: rgba(0, 0, 0, 0.1); 
+            --subtle-shadow: 0 1px 2px var(--shadow-color);
+        }
+
+        .dark-mode {
+            /* Dark Mode - Stronger contrast and deeper tones */
+            --page-bg: #121212; 
+            --chat-container-bg-start: #1e1e1e;
+            --chat-container-bg-end: #282828;
+            
+            --border-color: #555;
+            --text-color: #e0e0e0;
+            --header-bg: #1e1e1e;
+            --accent-blue: #8AB4F8; 
+            --header-text: var(--accent-blue); 
+            --tagline-text: #a0a0a0;
+            --bot-message-bg: #333333; 
+            --user-message-bg: #4A4A4A; 
+            
+            /* Frosted Input - ADJUSTED FOR MORE SEE-THROUGH LOOK */
+            --input-bg: rgba(30, 30, 30, 0.6); /* Reduced opacity to 0.6 */
+            
+            --welcome-title-color: var(--accent-blue);
+            --welcome-text: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.5); 
+            --subtle-shadow: 0 1px 3px var(--shadow-color);
+        }
+
+        /* --- Global & Layout Styles --- */
+        body {
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--page-bg);
+            color: var(--text-color);
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        #chat-container {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, var(--chat-container-bg-start) 0%, var(--chat-container-bg-end) 100%);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.5s;
+        }
+
+        /* --- Header Styles (Simplified) --- */
+        .chat-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 18px 30px; 
+            font-size: 1.6em; 
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.5s, border-color 0.5s; 
+        }
+
+        .chat-header .title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px; 
+        }
+
+        .chat-header .tagline {
+            font-size: 0.5em; 
+            font-weight: 400;
+            color: var(--tagline-text);
+        }
+
+        /* --- Messages Area --- */
+        #messages {
+            flex-grow: 1;
+            padding: 20px 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 100px; 
+        }
+
+        .message {
+            padding: 12px 18px;
+            border-radius: 18px; 
+            line-height: 1.5;
+            word-wrap: break-word;
+            font-size: 1.05em;
+            box-shadow: none; 
+            color: var(--text-color);
+            transition: background-color 0.5s, color 0.5s; 
+            border: 1px solid var(--border-color);
+        }
+
+        .user-message {
+            align-self: flex-end;
+            max-width: 85%;
+            width: fit-content; 
+            text-align: right; 
+            background-color: var(--user-message-bg);
+            border-radius: 18px 4px 18px 18px;
+        }
+        
+        .bot-message-container {
+            align-self: flex-start;
+            display: flex; 
+            gap: 10px; 
+            max-width: 85%;
+        }
+
+        .bot-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--accent-blue); 
+            color: var(--bot-message-bg); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            flex-shrink: 0; 
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-top: 18px; 
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        .bot-message-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bot-name {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--tagline-text);
+            margin-bottom: 2px;
+            padding-left: 5px; 
+            transition: color 0.5s;
+        }
+
+        .bot-message {
+            background-color: var(--bot-message-bg);
+            border-radius: 4px 18px 18px 18px; 
+        }
+
+        /* --- Thinking Animation Styles --- */
+        @keyframes typing {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+            100% { content: "."; }
+        }
+
+        .thinking::after {
+            content: "";
+            animation: typing 1.5s steps(4, end) infinite;
+        }
+        
+        /* --- Start Content (Welcome Screen) --- */
+        #start-content {
+            position: absolute;
+            top: 61px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding-bottom: 200px;
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        #start-content.hidden {
+            opacity: 0;
+            transform: translateY(-50px);
+            pointer-events: none;
+        }
+
+        .welcome-title {
+            font-size: 3em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--welcome-title-color);
+            transition: color 0.5s;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.5em;
+            font-weight: 400;
+            color: var(--tagline-text);
+            transition: color 0.5s;
+        }
+
+        /* --- Input Area (Frosted Glass) --- */
+        #input-wrapper {
+            width: 100%;
+            padding: 20px 0;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            transition: all 0.9s ease; 
+        }
+
+        #input-wrapper.centered {
+            position: absolute;
+            bottom: 50%;
+            transform: translateY(120%);
+            background: transparent;
+        }
+
+        #input-wrapper.fixed {
+            position: fixed;
+            bottom: 20px; 
+            background: transparent;
+        }
+
+        #input-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--input-bg);
+            backdrop-filter: var(--frosted-blur); /* FROSTED GLASS EFFECT */
+            padding: 10px 18px;
+            border-radius: 28px; 
+            box-shadow: 0 4px 15px var(--shadow-color);
+            width: 100%;
+            max-width: 800px; 
+            margin: 0 auto;
+            transition: background 0.5s, box-shadow 0.5s; 
+        }
+
+        .app-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            font-size: 1.1rem;
+            padding: 10px 15px;
+        }
+
+        .app-input::placeholder {
+            color: var(--tagline-text);
+        }
+
+        #send-button {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 50%; 
+            padding: 10px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        #send-button:hover {
+            background: var(--accent-blue);
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        #theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--header-text);
+            transition: color 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div class="chat-header">
+            <div class="title-group">
+                <span style="font-weight: 750;">DiscBot</span>
+                <span class="tagline">Discrete Mathematics Tutor</span>
+            </div>
+            <button id="theme-toggle" title="Toggle Dark/Light Mode">
+                <span id="toggle-icon">🌙</span>
+            </button>
+        </div>
+
+        <div id="start-content">
+            <h1 class="welcome-title">Hello</h1> <h2 class="welcome-subtitle">What can I help you with today?</h2>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <div id="input-wrapper" class="centered">
+        <div id="input-area">
+            <input type="text" id="user-input" class="app-input" placeholder="Ask anything...">
+            <button id="send-button" title="Send message">
+                <span>➤</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const startContent = document.getElementById('start-content');
+        const inputWrapper = document.getElementById('input-wrapper');
+        const chatInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // --- Theme Logic ---
+        function applyTheme(isDark) {
+            if (isDark) {
+                body.classList.add('dark-mode');
+                toggleIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                toggleIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Apply theme on load
+        const storedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (storedTheme === 'dark' || (storedTheme === null && prefersDark)) {
+            applyTheme(true);
+        } else {
+            applyTheme(false);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isCurrentlyDark = body.classList.contains('dark-mode');
+            applyTheme(!isCurrentlyDark);
+        });
+
+        // --- Chat UI Management ---
+        function activateChatMode() {
+            if (inputWrapper.classList.contains('centered')) {
+                inputWrapper.classList.remove('centered');
+                inputWrapper.classList.add('fixed');
+                startContent.classList.add('hidden');
+            }
+        }
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // --- Core Message Logic with Bolding and Paragraph Fixes ---
+        function appendMessage(text, sender) {
+            if (messagesDiv.children.length === 0) activateChatMode();
+
+            // 1. Correctly handle bolding and remove headings
+            let htmlContent = text
+                .replace(/^#+\s*/gm, '')      
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
+
+            // 2. Convert consecutive newlines (\n\n+) into paragraph breaks </p><p>
+            htmlContent = htmlContent.replace(/\n\s*\n/g, '</p><p>');
+
+            // 3. Remove single newlines (treat as spaces)
+            htmlContent = htmlContent
+                .replace(/\n/g, ' ') 
+                .trim();
+            
+            // 4. Create the message bubble element and wrap content in a paragraph
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.innerHTML = `<p>${htmlContent}</p>`;
+
+
+            if (sender === 'user') {
+                messageElement.classList.add('user-message');
+                messagesDiv.appendChild(messageElement);
+
+            } else { // sender === 'bot'
+                // Create the container for bot messages
+                const container = document.createElement('div');
+                container.classList.add('bot-message-container');
+
+                // 1. Add Avatar
+                const avatar = document.createElement('div');
+                avatar.classList.add('bot-avatar');
+                avatar.innerHTML = '🤖'; 
+                avatar.style.fontSize = '1.5em'; 
+                container.appendChild(avatar);
+
+                // 2. Create Content Wrapper
+                const contentWrapper = document.createElement('div');
+                contentWrapper.classList.add('bot-message-content');
+
+                // 3. Add Name
+                const nameElement = document.createElement('div');
+                nameElement.classList.add('bot-name');
+                nameElement.textContent = 'DiscBot'; 
+                contentWrapper.appendChild(nameElement);
+                
+                // 4. Add Message Bubble
+                messageElement.classList.add('bot-message');
+                contentWrapper.appendChild(messageElement);
+
+                container.appendChild(contentWrapper);
+                messagesDiv.appendChild(container);
+            }
+
+            scrollToBottom();
+            // Render MathJax if available, target the specific message element
+            if (window.MathJax) MathJax.typesetPromise([messageElement]);
+        }
+
+
+        // --- Core Application Logic with Thinking Animation Fix ---
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            chatInput.value = '';
+
+            // This is the animated placeholder message
+            const placeholderContainer = document.createElement('div');
+            placeholderContainer.classList.add('bot-message-container');
+            placeholderContainer.innerHTML = `
+                <div class="bot-avatar" style="font-size: 1.5em;">🤖</div>
+                <div class="bot-message-content">
+                    <div class="bot-name">DiscBot</div>
+                    <div class="message bot-message thinking">DiscBot is thinking</div>
+                </div>
+            `;
+            messagesDiv.appendChild(placeholderContainer);
+            scrollToBottom();
+
+            try {
+                // NOTE: This assumes a running backend server at the root path '/ask'
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                
+                // Remove the placeholder
+                messagesDiv.removeChild(placeholderContainer);
+                appendMessage(data.reply, 'bot');
+            } catch {
+                // Remove the placeholder
+                messagesDiv.removeChild(placeholderContainer);
+                appendMessage('Error: Could not connect to the bot.', 'bot');
+            }
+        }
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        window.onload = () => chatInput.focus();
+    </script>
+</body>
+</html>
